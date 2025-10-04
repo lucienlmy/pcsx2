@@ -3653,6 +3653,11 @@ void FullscreenUI::DrawInterfaceSettingsPage()
 		"OsdShowVideoCapture", true);
 	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_FA_SLIDERS, "Show Settings"),
 		FSUI_CSTR("Shows the current configuration in the bottom-right corner of the display."), "EmuCore/GS", "OsdShowSettings", false);
+
+	bool show_settings = (bsi->GetBoolValue("EmuCore/GS", "OsdShowSettings", false) == false);
+	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_FA_HAMMER, "Show Patches"),
+		FSUI_CSTR("Shows the amount of currently active patches/cheats on the bottom-right corner of the display."), "EmuCore/GS",
+		"OsdshowPatches", false, !show_settings);
 	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_PF_GAMEPAD_ALT, "Show Inputs"),
 		FSUI_CSTR("Shows the current controller state of the system in the bottom-left corner of the display."), "EmuCore/GS",
 		"OsdShowInputs", false);
@@ -5753,7 +5758,8 @@ void FullscreenUI::DrawPauseMenu(MainWindowType type)
 			case PauseSubMenu::None:
 			{
 				// NOTE: Menu close must come first, because otherwise VM destruction options will race.
-				const bool can_load_or_save_state = s_current_disc_crc != 0;
+				const bool can_load_state = s_current_disc_crc != 0 && !Achievements::IsHardcoreModeActive();
+				const bool can_save_state = s_current_disc_crc != 0;
 
 				if (just_focused)
 					ImGui::SetFocusID(ImGui::GetID(FSUI_ICONSTR(ICON_FA_PLAY, "Resume Game")), ImGui::GetCurrentWindow());
@@ -5767,19 +5773,19 @@ void FullscreenUI::DrawPauseMenu(MainWindowType type)
 					DoToggleFrameLimit();
 				}
 
-				if (ActiveButton(FSUI_ICONSTR(ICON_FA_ARROW_ROTATE_LEFT, "Load State"), false, can_load_or_save_state))
+				if (ActiveButton(FSUI_ICONSTR(ICON_FA_ARROW_ROTATE_LEFT, "Load State"), false, can_load_state))
 				{
 					if (OpenSaveStateSelector(true))
 						s_current_main_window = MainWindowType::None;
 				}
 
-				if (ActiveButton(FSUI_ICONSTR(ICON_FA_DOWNLOAD, "Save State"), false, can_load_or_save_state))
+				if (ActiveButton(FSUI_ICONSTR(ICON_FA_DOWNLOAD, "Save State"), false, can_save_state))
 				{
 					if (OpenSaveStateSelector(false))
 						s_current_main_window = MainWindowType::None;
 				}
 
-				if (ActiveButton(FSUI_ICONSTR(ICON_FA_WRENCH, "Game Properties"), false, can_load_or_save_state))
+				if (ActiveButton(FSUI_ICONSTR(ICON_FA_WRENCH, "Game Properties"), false, can_save_state))
 				{
 					SwitchToGameSettings();
 				}
@@ -5819,7 +5825,7 @@ void FullscreenUI::DrawPauseMenu(MainWindowType type)
 				if (ActiveButton(FSUI_ICONSTR(ICON_FA_POWER_OFF, "Close Game"), false))
 				{
 					// skip submenu when we can't save anyway
-					if (!can_load_or_save_state)
+					if (!can_save_state)
 						RequestShutdown(false);
 					else
 						OpenPauseSubMenu(PauseSubMenu::Exit);
@@ -6144,7 +6150,7 @@ void FullscreenUI::DrawSaveStateSelector(bool is_loading)
 
 					if (ActiveButton(
 							is_loading ? FSUI_ICONSTR(ICON_FA_FOLDER_OPEN, "Load State") : FSUI_ICONSTR(ICON_FA_FOLDER_OPEN, "Save State"),
-							false, true, LAYOUT_MENU_BUTTON_HEIGHT_NO_SUMMARY))
+							false, is_loading ? !Achievements::IsHardcoreModeActive() : true, LAYOUT_MENU_BUTTON_HEIGHT_NO_SUMMARY))
 					{
 						if (is_loading)
 							DoLoadState(std::move(entry.path));
@@ -8116,6 +8122,7 @@ TRANSLATE_NOOP("FullscreenUI", "Shows indicators when fast forwarding, pausing, 
 TRANSLATE_NOOP("FullscreenUI", "Shows the currently active input recording status.");
 TRANSLATE_NOOP("FullscreenUI", "Shows the currently active video capture status.");
 TRANSLATE_NOOP("FullscreenUI", "Shows the current configuration in the bottom-right corner of the display.");
+TRANSLATE_NOOP("FullscreenUI", "Shows the amount of currently active patches/cheats on the bottom-right corner of the display.");
 TRANSLATE_NOOP("FullscreenUI", "Shows the current controller state of the system in the bottom-left corner of the display.");
 TRANSLATE_NOOP("FullscreenUI", "Shows a visual history of frame times in the upper-left corner of the display.");
 TRANSLATE_NOOP("FullscreenUI", "Shows the current system hardware information on the OSD.");
@@ -8427,6 +8434,7 @@ TRANSLATE_NOOP("FullscreenUI", "List Settings");
 TRANSLATE_NOOP("FullscreenUI", "Sets which view the game list will open to.");
 TRANSLATE_NOOP("FullscreenUI", "Determines which field the game list will be sorted by.");
 TRANSLATE_NOOP("FullscreenUI", "Reverses the game list sort order from the default (usually ascending to descending).");
+TRANSLATE_NOOP("FullscreenUI", "Shows Titles for Games when in Game Grid View Mode");
 TRANSLATE_NOOP("FullscreenUI", "Cover Settings");
 TRANSLATE_NOOP("FullscreenUI", "Downloads covers from a user-specified URL template.");
 TRANSLATE_NOOP("FullscreenUI", "Identifies any new files added to the game directories.");
@@ -8766,6 +8774,7 @@ TRANSLATE_NOOP("FullscreenUI", "Show Status Indicators");
 TRANSLATE_NOOP("FullscreenUI", "Show Input Recording Status");
 TRANSLATE_NOOP("FullscreenUI", "Show Video Capture Status");
 TRANSLATE_NOOP("FullscreenUI", "Show Settings");
+TRANSLATE_NOOP("FullscreenUI", "Show Patches");
 TRANSLATE_NOOP("FullscreenUI", "Show Inputs");
 TRANSLATE_NOOP("FullscreenUI", "Show Frame Times");
 TRANSLATE_NOOP("FullscreenUI", "Show Hardware Info");
@@ -8923,6 +8932,7 @@ TRANSLATE_NOOP("FullscreenUI", "Remove From List");
 TRANSLATE_NOOP("FullscreenUI", "Default View");
 TRANSLATE_NOOP("FullscreenUI", "Sort By");
 TRANSLATE_NOOP("FullscreenUI", "Sort Reversed");
+TRANSLATE_NOOP("FullscreenUI", "Show Titles");
 TRANSLATE_NOOP("FullscreenUI", "Download Covers");
 TRANSLATE_NOOP("FullscreenUI", "Scan For New Games");
 TRANSLATE_NOOP("FullscreenUI", "Rescan All Games");
